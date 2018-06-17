@@ -1,10 +1,11 @@
 #include <sys/epoll.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "ttr_epoll.h"
 
-cttr_epoll::cttr_epool(int size, int timeout), 
-    m_size(size),
-    m_timeout(timeout)
+cttr_epoll::cttr_epoll(int size, int timeout) : m_size(size), m_timeout(timeout)
 {
     if(size == 0) {
         m_fd = epoll_create1(0);
