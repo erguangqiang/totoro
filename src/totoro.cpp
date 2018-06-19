@@ -23,18 +23,13 @@ enum {
     TRUE = 1,
 };
 
-static ttr_worker_t *g_workers;
-
 int main(int argc, char** argv)
 {
     int ret = 0;
-    int i = 0;
     int cworker = 0;
     int status = 0;
     pid_t pid = 0;
     cttr_startup *startup = NULL;
-    cttr_local_socket *lsock = NULL, *lclient = NULL;
-    int workerflag = TTR_WF_SERVER;
 
     startup = cttr_startup::instance();
     if(!startup) return -127;
@@ -49,35 +44,6 @@ int main(int argc, char** argv)
 
     for(;;) {
         if(cworker >= TTR_WORKERS) {
-            for(;;) {
-            lsock = new cttr_local_socket(TTR_LOCAL_SERVER);
-            if(!lsock) {
-                perror("new cttr_local_socket error");
-                return -127;
-            }
-
-            ret = lsock->startup("/tmp/totoro.sock");
-            if(ret == -1) return -1;
-                lclient = lsock->accept_client();
-                if(!lclient) return -127;
-
-                ret = lclient->request((char *)&pid, sizeof(pid));
-                if(ret != sizeof(pid)) return -127;
-
-                for(i = 0; i < 2; i++) {
-                    if(g_workers[i].enable) continue;
-
-                    g_workers[i].enable = TRUE;
-                    g_workers[i].pid = pid;
-                }
-
-                if(i == 2) return -127;
-
-                workerflag = (i == 0) ? TTR_WF_SERVER : TTR_WF_CLIENT;
-                ret = lclient->response((char *)&workerflag, sizeof(workerflag));
-                if(ret != sizeof(workerflag)) return -127;
-            }
-            
             waitpid(-1, &status, 0);
             printf("one work exit, one worker restart...\n");
         }
@@ -88,37 +54,11 @@ int main(int argc, char** argv)
 
         cworker++;
     }
-#if 0
-    //worker process
-    delete lsock; lsock = NULL;
-    lsock = new cttr_local_socket(TTR_LOCAL_CLIENT);
-    if(!lsock) return -127;
 
-    for(;;) {
-        ret = lsock->connect_server();
-        if(ret == -1) return -127;
-        break;
+    for(;;){
+        sleep(5);
+        printf("i'm pid : %d, server process.\n", getpid());
     }
 
-    pid = getpid();
-    ret = lsock->response((char *)&pid, sizeof(pid));
-    if(ret != sizeof(pid)) return -127;
-
-    ret = lsock->request((char *)&workerflag, sizeof(workerflag));
-    if(ret != sizeof(workerflag)) return -127;
-#endif
-
-    if(workerflag == TTR_WF_SERVER) {
-        for(;;){
-            sleep(5);
-            printf("i'm pid : %d, server process.\n", getpid());
-        }
-    } else {
-        for(;;) {
-            sleep(5);
-            printf("i'm pid : %d, client process.\n", getpid());
-        }
-    }
-    
     return 0;
 }
